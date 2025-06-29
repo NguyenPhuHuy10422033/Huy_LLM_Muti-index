@@ -109,7 +109,9 @@ logs/
 # Node data and temp files
 node_data/
 temp/
-data/
+# data/  
+data/data/ 
+data/*/logs/ 
 uploads/
 
 # System files
