@@ -1,0 +1,134 @@
+Folder PATH listing
+Volume serial number is FED7-A59C
+C:.
+|   .env
+|   .gitignore
+|   directory_tree.txt
+|   README.md
+|   requirements.txt
+|   setup.py
+|   
++---config
+|       config.py
+|       docker-compose.yml
+|       env.example
+|       
++---core
+|   +---api
+|   |       main.py
+|   |       
+|   +---models
+|   |   |   base.py
+|   |   |   consistency.py
+|   |   |   csv_index.py
+|   |   |   document.py
+|   |   |   index.py
+|   |   |   query.py
+|   |   |   storage.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           base.cpython-312.pyc
+|   |           consistency.cpython-312.pyc
+|   |           csv_document.cpython-312.pyc
+|   |           csv_index.cpython-312.pyc
+|   |           document.cpython-312.pyc
+|   |           index.cpython-312.pyc
+|   |           query.cpython-312.pyc
+|   |           storage.cpython-312.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
+|   +---services
+|   |   +---inference
+|   |   |       gemini_client.py
+|   |   |       index_selector.py
+|   |   |       query_analyzer.py
+|   |   |       reasoning_engine.py
+|   |   |       __init__.py
+|   |   |       
+|   |   \---ingestion
+|   |           chunker.py
+|   |           extractor.py
+|   |           pipeline.py
+|   |           __init__.py
+|   |           
+|   +---types
+|   |       document_processor.py
+|   |       image_processor.py
+|   |       tabular_processor.py
+|   |       
+|   \---utils
+|       |   encryption.py
+|       |   logging.py
+|       |   metrics.py
+|       |   validation.py
+|       |   __init__.py
+|       |   
+|       \---__pycache__
+|               encryption.cpython-312.pyc
+|               logging.cpython-312.pyc
+|               metrics.cpython-312.pyc
+|               validation.cpython-312.pyc
+|               __init__.cpython-312.pyc
+|               
++---data
+|   +---data
+|   |   +---csv_databases
+|   |   +---documents
+|   |   +---images
+|   |   +---logs
+|   |   |       app.log
+|   |   |       
+|   |   \---node_data
+|   \---storage
+|       |   auto_scaler.py
+|       |   csv_database.py
+|       |   distributed_storage_manager.py
+|       |   distributed_vector_store.py
+|       |   qdrant_client.py
+|       |   storage_manager.py
+|       |   vector_node_server.py
+|       |   __init__.py
+|       |   
+|       \---__pycache__
+|               adaptive_index_engine.cpython-312.pyc
+|               auto_scaler.cpython-312.pyc
+|               cassandra_client.cpython-312.pyc
+|               csv_database.cpython-312.pyc
+|               distributed_storage_manager.cpython-312.pyc
+|               distributed_vector_store.cpython-312.pyc
+|               elasticsearch_client.cpython-312.pyc
+|               minio_client.cpython-312.pyc
+|               qdrant_client.cpython-312.pyc
+|               sql_query_engine.cpython-312.pyc
+|               storage_manager.cpython-312.pyc
+|               vector_node_server.cpython-312.pyc
+|               __init__.cpython-312.pyc
+|               
++---demos
+|       demo_autoscaling.py
+|       demo_distributed_system.py
+|       
++---docs
+|       architecture.md
+|       autoscaling.md
+|       COLUMN_VISIBILITY_IMPROVEMENTS.md
+|       CSV_INDEXING.md
+|       CSV_RESULTS_EXPLANATION.md
+|       DISTRIBUTED_ARCHITECTURE.md
+|       report.md
+|       
++---logs
+|       app.log
+|       
++---scripts
+|       start_node1.py
+|       start_node2.py
+|       start_node3.py
+|       start_vector_nodes.py
+|       
+\---tests
+        example_usage.py
+        test_ai_collections.py
+        test_distributed_system.py
+        test_system.py
