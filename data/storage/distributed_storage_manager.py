@@ -262,7 +262,15 @@ class DistributedStorageManager:
         except Exception as e:
             logger.error(f"Error removing node {node_id}: {e}")
             return False
-
+    async def rebalance_shards(self) -> bool:
+        """Trigger shard redistribution across the cluster."""
+        try:
+            await self.distributed_store._redistribute_shards()
+            logger.info("Triggered shard rebalancing across the cluster")
+            return True
+        except Exception as e:
+            logger.error(f"Error during shard rebalancing: {e}")
+            return False
 # Factory function for easy initialization
 def create_distributed_storage_manager(
     nodes: Optional[List[VectorNode]] = None,

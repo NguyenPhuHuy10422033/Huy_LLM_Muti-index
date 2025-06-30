@@ -135,29 +135,46 @@ class AutoScaler:
             logger.error(f"Error during scale UP: {e}")
     
     async def _scale_down(self, reason: str, current_nodes: int):
-        """Remove a node from the cluster."""
+        """Remove a node from the cluster and migrate its data."""
         try:
             cluster_status = await self.storage_manager.get_cluster_status()
             nodes = cluster_status.get("nodes", [])
-            
-            if nodes:
-                # Remove the last node
-                node_to_remove = nodes[-1]["id"]
-                success = await self.storage_manager.remove_node(node_to_remove)
-                
-                if success:
-                    self.last_scale_down = time.time()
-                    logger.info(f"Successfully scaled DOWN: Removed node {node_to_remove}")
-                    
-                    self.scaling_history.append({
-                        "timestamp": time.time(),
-                        "action": "scale_down",
-                        "reason": reason,
-                        "node_id": node_to_remove
-                    })
-                else:
-                    logger.error(f"Failed to scale DOWN: Could not remove node {node_to_remove}")
-                    
+
+            # Không xóa node1, chỉ xóa khi còn nhiều hơn min_nodes
+            removable_nodes = [n for n in nodes if n["id"] != "node1"]
+            if len(removable_nodes) == 0 or current_nodes <= self.thresholds.min_nodes:
+                logger.info("No removable node or already at min_nodes")
+                return
+
+            # Chọn node ít vectors nhất để xóa
+            node_to_remove = min(removable_nodes, key=lambda n: n["vector_count"])
+            node_id = node_to_remove["id"]
+            logger.info(f"Preparing to remove node {node_id}")
+
+            # Di chuyển dữ liệu nếu có hàm migrate_shards_from_node
+            if hasattr(self.storage_manager, "migrate_shards_from_node"):
+                await self.storage_manager.migrate_shards_from_node(node_id)
+            else:
+                logger.warning("No migrate_shards_from_node method implemented, skipping migration!")
+
+            # Xóa node khỏi cluster
+            success = await self.storage_manager.remove_node(node_id)
+
+            if success:
+                # Gọi sharding lại sau khi xóa node
+                await self.storage_manager.rebalance_shards()
+                self.last_scale_down = time.time()
+                logger.info(f"Successfully scaled DOWN: Removed node {node_id}")
+
+                self.scaling_history.append({
+                    "timestamp": time.time(),
+                    "action": "scale_down",
+                    "reason": reason,
+                    "node_id": node_id
+                })
+            else:
+                logger.error(f"Failed to scale DOWN: Could not remove node {node_id}")
+
         except Exception as e:
             logger.error(f"Error during scale DOWN: {e}")
     
