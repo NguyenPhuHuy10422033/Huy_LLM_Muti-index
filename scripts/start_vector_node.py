@@ -103,4 +103,19 @@ server.run()
         print("✅ All nodes stopped")
 
 if __name__ == "__main__":
-    main() 
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Start a vector node")
+    parser.add_argument("--node-id", type=str, help="Node ID")
+    parser.add_argument("--host", type=str, default="localhost", help="Host")
+    parser.add_argument("--port", type=int, help="Port")
+    parser.add_argument("--data-dir", type=str, default=None, help="Data directory")
+
+    args = parser.parse_args()
+
+    if args.node_id and args.port:
+        # Khởi động một node duy nhất với tham số truyền vào
+        start_node(args.node_id, args.host, args.port, args.data_dir)
+    else:
+        # Nếu không có tham số, chạy main() để khởi động nhiều node (mặc định)
+        main()

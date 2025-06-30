@@ -290,6 +290,18 @@ class VectorNodeServer:
                 "request_count": self.request_count,
                 "last_request_time": self.last_request_time
             }
+        @self.app.get("/shards/{shard_id}/vectors")
+        async def get_shard_vectors(shard_id: str):
+            """Get all vectors and documents for a shard."""
+            vector_ids = self.shards.get(shard_id, [])
+            vectors = []
+            documents = []
+            for vid in vector_ids:
+                vdata = self.vectors.get(vid)
+                if vdata:
+                    vectors.append(vdata.vector)
+                    documents.append(vdata.document)
+            return {"vectors": vectors, "documents": documents}
     
     def _calculate_load(self) -> float:
         """Calculate current load (0.0 to 1.0)."""

@@ -200,8 +200,44 @@ class DistributedVectorStore:
     
     async def _move_shards_between_nodes(self, source_nodes: List[VectorNode], target_nodes: List[VectorNode]):
         """Move shards between nodes for load balancing."""
-        # Implementation would involve copying shard data and updating metadata
         logger.info(f"Load balancing: moving shards from {len(source_nodes)} to {len(target_nodes)} nodes")
+        if not source_nodes or not target_nodes:
+            return
+
+        for source_node in source_nodes:
+            for target_node in target_nodes:
+                # Tìm các shard mà source_node có nhưng target_node chưa có
+                candidate_shards = [
+                    shard for shard in self.shards.values()
+                    if source_node.id in shard.node_ids and target_node.id not in shard.node_ids
+                ]
+                for shard_to_move in candidate_shards:
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            # Lấy vectors từ source_node
+                            async with session.get(f"{source_node.url}/shards/{shard_to_move.id}/vectors") as resp:
+                                if resp.status != 200:
+                                    logger.warning(f"Failed to fetch vectors from {source_node.id} for shard {shard_to_move.id}")
+                                    continue
+                                data = await resp.json()
+                                vectors = data.get("vectors", [])
+                                documents = data.get("documents", [])
+
+                            # Upsert vectors vào target_node
+                            payload = {
+                                "shard_id": shard_to_move.id,
+                                "collection_name": shard_to_move.collection_name,
+                                "vectors": vectors,
+                                "documents": documents
+                            }
+                            async with session.post(f"{target_node.url}/vectors", json=payload) as resp2:
+                                if resp2.status == 200:
+                                    # Cập nhật metadata: thêm target_node vào node_ids của shard
+                                    shard_to_move.node_ids.append(target_node.id)
+                                    shard_to_move.replica_nodes.append(target_node.id)
+                                    logger.info(f"Shard {shard_to_move.id} now replicated to {target_node.id}")
+                    except Exception as e:
+                        logger.warning(f"Error moving shard: {e}")
     
     def _get_shard_id(self, collection_name: str, document_id: str) -> str:
         """Get shard ID for a document using consistent hashing."""
@@ -529,9 +565,55 @@ class DistributedVectorStore:
     
     async def _redistribute_shards(self):
         """Redistribute shards when nodes are added/removed."""
-        # Implementation would involve moving shard data between nodes
         logger.info("Redistributing shards across nodes")
-    
+        healthy_nodes = [n for n in self.nodes.values() if n.status == NodeStatus.HEALTHY]
+        if len(healthy_nodes) < 2:
+            return
+
+        # Tìm node ít vector nhất (target) và node nhiều vector nhất (source)
+        target_node = min(healthy_nodes, key=lambda n: n.vector_count)
+        source_node = max(healthy_nodes, key=lambda n: n.vector_count)
+        if target_node.id == source_node.id:
+            return
+
+        # Tìm shard thuộc source_node mà chưa có trên target_node
+        candidate_shards = [
+            shard for shard in self.shards.values()
+            if source_node.id in shard.node_ids and target_node.id not in shard.node_ids
+        ]
+        if not candidate_shards:
+            return
+
+        # Di chuyển tất cả các shard cần thiết (không chỉ 1 shard)
+        for shard_to_move in candidate_shards:
+            logger.info(f"Moving shard {shard_to_move.id} from {source_node.id} to {target_node.id}")
+            try:
+                async with aiohttp.ClientSession() as session:
+                    # Lấy vectors từ source_node
+                    async with session.get(f"{source_node.url}/shards/{shard_to_move.id}/vectors") as resp:
+                        if resp.status != 200:
+                            logger.warning(f"Failed to fetch vectors from {source_node.id} for shard {shard_to_move.id}")
+                            continue
+                        data = await resp.json()
+                        vectors = data.get("vectors", [])
+                        documents = data.get("documents", [])
+
+                    # Upsert vectors vào target_node
+                    payload = {
+                        "shard_id": shard_to_move.id,
+                        "collection_name": shard_to_move.collection_name,
+                        "vectors": vectors,
+                        "documents": documents
+                    }
+                    async with session.post(f"{target_node.url}/vectors", json=payload) as resp2:
+                        if resp2.status == 200:
+                            # Cập nhật metadata: thêm target_node vào node_ids của shard
+                            shard_to_move.node_ids.append(target_node.id)
+                            shard_to_move.replica_nodes.append(target_node.id)
+                            logger.info(f"Shard {shard_to_move.id} now replicated to {target_node.id}")
+            except Exception as e:
+                logger.warning(f"Error redistributing shard: {e}")
+        
     def get_cluster_status(self) -> Dict[str, Any]:
         """Get status of the distributed cluster."""
         healthy_nodes = [n for n in self.nodes.values() if n.status == NodeStatus.HEALTHY]

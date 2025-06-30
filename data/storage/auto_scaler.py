@@ -98,6 +98,23 @@ class AutoScaler:
             new_node_id = f"node{current_nodes + 1}"
             new_port = 8000 + current_nodes + 1
             
+            import subprocess
+            import sys
+            import os
+
+            # Xác định script khởi động node mới (ví dụ: start_node4.py hoặc start_vector_node.py)
+            script_path = os.path.join(os.path.dirname(__file__), "../../scripts/start_vector_node.py")
+            script_path = os.path.abspath(script_path)
+
+            # Khởi động process node mới (chạy ngầm)
+            subprocess.Popen([
+                sys.executable, script_path,
+                "--node-id", new_node_id,
+                "--host", "localhost",
+                "--port", str(new_port)
+            ])
+
+            # Sau đó mới thêm metadata node vào cluster
             new_node = VectorNode(id=new_node_id, host="localhost", port=new_port)
             success = await self.storage_manager.add_node(new_node)
             
